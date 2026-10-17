@@ -26,6 +26,10 @@ mem.add("I moved to Bangalore last week and now only write Rust.", user_id="u1")
 print(mem.context(user_id="u1", max_tokens=200).text)
 ```
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and workflow, and [docs/adr](docs/adr) for the design decisions behind the engine.
+
 ## License
 
 [Apache-2.0](LICENSE)
