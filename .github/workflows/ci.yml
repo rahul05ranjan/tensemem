@@ -22,9 +22,11 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync --locked
-      - run: uv run ruff check .
+      # github format posts inline annotations on the PR Files tab (free).
+      - run: uv run ruff check --output-format=github .
       - run: uv run ruff format --check .
       - run: uv run pyright
+      - run: uvx codespell --skip="*.lock,.git,uv.lock" --ignore-words-list="tensemem"
 
   test:
     name: Test (${{ matrix.os }}, Python ${{ matrix.python }})

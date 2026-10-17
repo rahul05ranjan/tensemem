@@ -1,0 +1,108 @@
+name: PR quality
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: pr-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  description:
+    name: PR description and size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Require What / Why / Docs sections
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BODY// }" ]; then
+            echo "::error::PR body is empty. Fill in the pull request template."
+            exit 1
+          fi
+          missing=0
+          for heading in '## What' '## Why' '## Docs'; do
+            if ! printf '%s\n' "$BODY" | grep -Fq "$heading"; then
+              echo "::error::PR body must include a '${heading}' section (see .github/pull_request_template.md)."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Enforce small diffs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          set -euo pipefail
+          # Ignore lockfiles; they inflate diffs without adding review load.
+          stats=$(git diff --numstat "$BASE_SHA"..."$HEAD_SHA" -- . \
+            ':(exclude)uv.lock' ':(exclude)**/uv.lock' || true)
+          if [ -z "$stats" ]; then
+            echo "No file changes detected."
+            exit 0
+          fi
+          added=$(printf '%s\n' "$stats" | awk '{a+=$1} END {print a+0}')
+          deleted=$(printf '%s\n' "$stats" | awk '{d+=$2} END {print d+0}')
+          total=$((added + deleted))
+          files=$(printf '%s\n' "$stats" | wc -l | tr -d ' ')
+          echo "Diff size (excluding uv.lock): +$added / -$deleted = $total lines across $files files"
+          soft=400
+          hard=1000
+          if [ "$total" -gt "$hard" ]; then
+            case ",$LABELS," in
+              *,large-pr,*)
+                echo "::warning::Diff is $total lines but 'large-pr' label is present; allowing."
+                ;;
+              *)
+                echo "::error::Diff is $total lines (limit $hard). Split the PR, or add the 'large-pr' label with a Why note."
+                exit 1
+                ;;
+            esac
+          elif [ "$total" -gt "$soft" ]; then
+            echo "::warning::Diff is $total lines (soft limit $soft). Prefer smaller PRs when possible."
+          fi
+
+  actionlint:
+    name: Lint workflows (reviewdog)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: reviewdog/action-actionlint@b76d06f8570118465db3190c9a08f1b29d341aa1 # v1.80.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          fail_level: error
+          filter_mode: nofilter
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.0
+        run: |
+          set -euo pipefail
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Scan for secrets
+        run: gitleaks detect --source . --verbose --redact
