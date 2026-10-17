@@ -6,6 +6,7 @@ build/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+.pyright/
 node_modules/
 *.db
 .DS_Store
