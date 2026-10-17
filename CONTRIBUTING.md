@@ -28,3 +28,4 @@ uv run pytest
 - Keep each PR focused on one change, and describe what changed and why.
 - Significant design changes need an architecture decision record in `docs/adr/`.
 - Write commit messages in the imperative mood, for example "Add predicate registry".
+- Agents and editors should follow the project rules in [`.cursor/rules/`](.cursor/rules/) (short PRs, docs in the same change, vendor-neutral public docs).

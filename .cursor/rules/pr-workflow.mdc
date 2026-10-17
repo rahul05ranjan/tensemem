@@ -1,0 +1,35 @@
+---
+description: Keep PRs short, documented, and well-explained. Apply on every change destined for main.
+alwaysApply: true
+---
+
+# Pull requests
+
+`main` is protected. Never push to `main`; always open a PR.
+
+## Scope
+
+- One concern per PR (docs, tooling, one feature slice, or one bugfix).
+- Prefer a small reviewable diff over a "phase complete" megapatch.
+- If work spans multiple concerns, split into stacked PRs before asking for review.
+
+## Before opening the PR
+
+- Update docs that readers need: README for user-facing behavior, `docs/adr/` for significant design choices, CONTRIBUTING for workflow changes.
+- New architecture decisions get an ADR (copy the existing ADR format; add a row to `docs/adr/README.md`).
+- Run locally: `uv run ruff check .`, `uv run ruff format --check .`, `uv run pyright`, `uv run pytest`.
+
+## PR title and body
+
+- Title: imperative, specific (e.g. `Add freshness fields to context reads`).
+- Body must include:
+  - **What** — bullet list of concrete changes
+  - **Why** — the problem or decision this addresses
+  - **Docs** — what was updated, or "none needed" with a one-line reason
+- No competitor product names in the PR title or body (see public-docs rule).
+
+## Commits
+
+- Imperative mood; group related changes; no secrets, tokens, or build artifacts.
+---
+
