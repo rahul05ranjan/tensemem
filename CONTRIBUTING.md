@@ -31,7 +31,7 @@ Every PR also gets free automated review gates:
 | **PR quality** | Requires `## What` / `## Why` / `## Docs` in the body; fails oversized diffs (>1000 lines unless labeled `large-pr`); actionlint posts workflow findings as review comments; gitleaks scans for secrets |
 | **CodeQL** | Security analysis for Python and GitHub Actions (free on public repos) |
 
-Optional AI review (also free for public repos): install [CodeRabbit](https://github.com/apps/coderabbitai) on the `tensemem` org if you want natural-language PR review on top of the gates above.
+We do **not** depend on third-party AI review apps (many look free then push a paid trial). Quality comes from the gates above plus human review.
 
 In branch protection, require at least: `Lint and type-check`, `PR description and size`, and `Analyze (python)`.
 
