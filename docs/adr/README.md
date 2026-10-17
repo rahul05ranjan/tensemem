@@ -9,6 +9,9 @@ Each record captures one significant design decision: the context, what we chose
 | [0003](0003-sqlite-single-writer.md) | SQLite is the default store, with one writer per process | Accepted |
 | [0004](0004-optional-embeddings.md) | Embeddings are optional; full-text search is the default retrieval path | Accepted |
 | [0005](0005-bitemporal-facts.md) | Facts track both valid time and recorded time | Accepted |
+| [0006](0006-versioned-freshness-aware-reads.md) | Every read reports how fresh it is | Accepted |
+| [0007](0007-self-contamination-guard.md) | Memory never learns from its own output | Accepted |
+| [0008](0008-corrections-are-first-class.md) | Corrections are first-class and survive rebuilds | Accepted |
 
 ## Template
 
