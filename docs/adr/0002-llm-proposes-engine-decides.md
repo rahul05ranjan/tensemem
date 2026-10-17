@@ -7,7 +7,7 @@
 
 Someone has to decide what happens to existing memory when a new statement arrives. "I moved to Bangalore" should replace the old city. "I also write Go" should add a language. "I might move to Pune" should change nothing.
 
-Existing tools put that decision in the LLM: some ask the model to choose ADD/UPDATE/DELETE for each new fact, and Letta asks the agent to call memory-editing tools. Both make correctness depend on the model's judgment on every turn, which varies between models, prompt versions and even runs. Small and local models are noticeably worse at it.
+Existing tools put that decision in the LLM: some ask the model to choose ADD/UPDATE/DELETE for each new fact, and others ask the agent to call memory-editing tools. Both make correctness depend on the model's judgment on every turn, which varies between models, prompt versions and even runs. Small and local models are noticeably worse at it.
 
 ## Decision
 
@@ -22,7 +22,7 @@ Split the work in two:
 ## Alternatives considered
 
 - **LLM decides updates.** Fewer moving parts, handles unusual cases flexibly, but correctness is probabilistic and hard to test. A model upgrade can silently change behavior.
-- **Agent edits its own memory (Letta-style).** Maximally flexible, but depends on the agent remembering to call tools, costs tokens on the main turn, and small models corrupt state.
+- **Agent edits its own memory through tool calls.** Maximally flexible, but depends on the agent remembering to call tools, costs tokens on the main turn, and small models corrupt state.
 - **No LLM at all (rules or NER only).** Fully deterministic but far too weak at understanding natural language.
 
 ## Consequences
