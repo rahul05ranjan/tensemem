@@ -4,9 +4,9 @@ from tensemem.core.clock import (
     INSTANT_WIDTH,
     Clock,
     FrozenClock,
-    SystemClock,
     format_instant,
     parse_instant,
+    utc_now,
 )
 from tensemem.core.ids import new_ulid, ulid_timestamp_ms
 from tensemem.core.models import (
@@ -55,10 +55,10 @@ __all__ = [
     "OpKind",
     "PredicateSpec",
     "StaleMemoryError",
-    "SystemClock",
     "ValidPrecision",
     "format_instant",
     "new_ulid",
     "parse_instant",
     "ulid_timestamp_ms",
+    "utc_now",
 ]

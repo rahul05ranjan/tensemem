@@ -32,5 +32,5 @@ def test_later_timestamp_sorts_after_earlier() -> None:
 
 
 def test_invalid_ulid_rejected() -> None:
-    with pytest.raises(ValueError, match="26"):
+    with pytest.raises(ValueError, match="invalid ULID"):
         ulid_timestamp_ms("short")

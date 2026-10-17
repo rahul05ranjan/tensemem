@@ -1,43 +1,33 @@
-"""Clock abstraction for bi-temporal timestamps (ADR 0005).
+"""Injectable "now" for bi-temporal timestamps (ADR 0005).
 
-All stored times are UTC fixed-width ISO 8601 text so SQLite text order matches
-time order. Production code uses :class:`SystemClock`; tests inject
-:class:`FrozenClock`.
+Stored times are UTC fixed-width ISO 8601 text so SQLite text order matches time
+order. Call sites take a ``Clock`` (any zero-arg callable returning UTC
+``datetime``). Production uses :func:`utc_now`; tests use :class:`FrozenClock`.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Protocol, runtime_checkable
 
 # YYYY-MM-DDTHH:MM:SS.ffffffZ — always 27 characters.
-INSTANT_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 INSTANT_WIDTH = 27
 
-
-@runtime_checkable
-class Clock(Protocol):
-    """Source of "now" for recorded_at and related fields."""
-
-    def now(self) -> datetime:
-        """Return the current UTC time (timezone-aware)."""
-        ...
+Clock = Callable[[], datetime]
 
 
-class SystemClock:
-    """Wall clock in UTC."""
-
-    def now(self) -> datetime:
-        return datetime.now(UTC)
+def utc_now() -> datetime:
+    """Wall-clock time in UTC."""
+    return datetime.now(UTC)
 
 
 class FrozenClock:
-    """Clock that always returns a fixed instant (for tests)."""
+    """Callable clock that always returns a fixed instant (for tests)."""
 
     def __init__(self, instant: datetime) -> None:
         self._instant = _ensure_utc(instant)
 
-    def now(self) -> datetime:
+    def __call__(self) -> datetime:
         return self._instant
 
     def set(self, instant: datetime) -> None:
@@ -46,15 +36,13 @@ class FrozenClock:
 
     def advance(self, *, seconds: float = 0, milliseconds: int = 0) -> datetime:
         """Advance the frozen clock and return the new instant."""
-        delta = timedelta(seconds=seconds, milliseconds=milliseconds)
-        self._instant = self._instant + delta
+        self._instant = self._instant + timedelta(seconds=seconds, milliseconds=milliseconds)
         return self._instant
 
 
 def format_instant(instant: datetime) -> str:
     """Format a timezone-aware datetime as fixed-width UTC ISO text."""
     utc = _ensure_utc(instant)
-    # strftime %f is always 6 digits; Z is appended explicitly.
     return utc.strftime("%Y-%m-%dT%H:%M:%S.%f") + "Z"
 
 
