@@ -2,7 +2,7 @@
 
 **Memory that knows its tenses.** Embedded, deterministic memory that AI agents can safely act on.
 
-> Status: pre-alpha. The engine is under active development; this release only reserves the package name.
+> Status: pre-alpha. Domain types, clock, and ULID helpers are in place; the storage and resolver layers are next.
 
 ## The problem
 
