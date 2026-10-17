@@ -1,0 +1,15 @@
+---
+description: Python package conventions for TenseMem source and tests.
+globs: "**/*.{py,toml}"
+alwaysApply: false
+---
+
+# Python conventions
+
+- Python 3.11+; package lives under `src/tensemem/`.
+- Prefer clear names and small modules; match existing layout (`core`, `pipeline`, `storage`, `providers`, …).
+- Type-annotate public APIs; project uses pyright strict.
+- Tests in `tests/`; no live network in default pytest (use fakes/cassettes).
+- Do not add dependencies unless needed for the change; optional extras stay optional.
+- Resolver and apply logic must stay deterministic and unit-testable without an LLM.
+---

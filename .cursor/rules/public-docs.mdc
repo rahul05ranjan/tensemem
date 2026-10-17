@@ -1,0 +1,28 @@
+---
+description: Public docs stay vendor-neutral; private design notes stay out of the repo.
+alwaysApply: true
+---
+
+# Public documentation
+
+Anything that ships in this repository (README, ADRs, CONTRIBUTING, code comments, PR text, release notes) is public.
+
+## Do
+
+- Describe TenseMem by its properties: deterministic resolver, enforced cardinality, freshness-aware reads, contamination guard, durable corrections.
+- Prefer reproducible metrics and scenario descriptions over naming other products.
+- Keep ADRs focused on *our* decision, alternatives in abstract terms ("LLM decides updates", "agent tool calls"), not brand names.
+
+## Do not
+
+- Name competitor products or projects in public docs or PR descriptions.
+- Commit the private design doc (`TenseMem-Design-Doc.md` or similar) or any file that contains internal competitor analysis.
+- Paste API tokens, PyPI tokens, or credentials into the repo.
+
+## When design changes
+
+- Significant decisions → new or updated ADR in `docs/adr/`.
+- User-visible API or CLI changes → update README in the same PR.
+- Internal-only notes stay in the local private design doc outside this repository.
+---
+
