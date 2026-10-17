@@ -8,8 +8,8 @@
   "keywords": ["llm", "ai-agents", "memory", "temporal"],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shubhsting/tensemem.git"
+    "url": "git+https://github.com/tensemem/tensemem.git"
   },
-  "homepage": "https://github.com/shubhsting/tensemem",
+  "homepage": "https://github.com/tensemem/tensemem",
   "files": ["index.js", "README.md"]
 }

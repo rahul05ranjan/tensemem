@@ -21,9 +21,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/shubhsting/tensemem"
-Repository = "https://github.com/shubhsting/tensemem"
-Issues = "https://github.com/shubhsting/tensemem/issues"
+Homepage = "https://github.com/tensemem/tensemem"
+Repository = "https://github.com/tensemem/tensemem"
+Issues = "https://github.com/tensemem/tensemem/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/tensemem"]
