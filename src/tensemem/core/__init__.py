@@ -39,6 +39,13 @@ from tensemem.core.models import (
 )
 from tensemem.core.normalize import normalize_key, normalize_value
 from tensemem.core.ontology import EntitySpec, Ontology
+from tensemem.core.resolver import (
+    FactSnap,
+    IncomingOp,
+    RejectedClaim,
+    Snapshot,
+    resolve,
+)
 
 __all__ = [
     "INSTANT_WIDTH",
@@ -53,11 +60,13 @@ __all__ = [
     "EpisodeStatus",
     "ExtractedOp",
     "ExtractionResult",
+    "FactSnap",
     "FactSource",
     "FactStatus",
     "FactView",
     "Freshness",
     "FrozenClock",
+    "IncomingOp",
     "Modality",
     "Mutation",
     "MutationKind",
@@ -67,8 +76,10 @@ __all__ = [
     "Predicate",
     "PredicateSpec",
     "RegistryConflictError",
+    "RejectedClaim",
     "Scope",
     "ScopeKey",
+    "Snapshot",
     "StaleMemoryError",
     "ValidPrecision",
     "ValueType",
@@ -77,6 +88,7 @@ __all__ = [
     "normalize_key",
     "normalize_value",
     "parse_instant",
+    "resolve",
     "ulid_timestamp_ms",
     "utc_now",
 ]
