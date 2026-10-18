@@ -6,6 +6,7 @@ modules; this file is the contract they share.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from enum import StrEnum
 from typing import Literal
 
@@ -206,6 +207,72 @@ class FactView(BaseModel):
     valid_precision: ValidPrecision = ValidPrecision.UNKNOWN
     recorded_at: str
     recorded_seq: int = Field(ge=0)
+    cardinality: Cardinality = Cardinality.ONE
+
+
+class FactEventView(BaseModel):
+    """One row from ``fact_events``, as returned by ``explain``."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    from_status: FactStatus | None = None
+    to_status: FactStatus
+    reason: str
+    episode_id: int | None = None
+    at: str
+
+
+class FactSet(BaseModel):
+    """Facts plus the freshness of the snapshot they came from (ADR 0006)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    facts: tuple[FactView, ...] = ()
+    freshness: Freshness
+
+    @property
+    def values(self) -> dict[str, str | tuple[str, ...]]:
+        """Current (ACTIVE) values for the self subject. MANY predicates return a tuple."""
+        return _values_for(
+            fact
+            for fact in self.facts
+            if fact.status is FactStatus.ACTIVE and fact.subject == "user"
+        )
+
+    @property
+    def by_subject(self) -> dict[str, dict[str, str | tuple[str, ...]]]:
+        """Current (ACTIVE) values keyed by subject, then predicate."""
+        subjects: dict[str, list[FactView]] = {}
+        for fact in self.facts:
+            if fact.status is FactStatus.ACTIVE:
+                subjects.setdefault(fact.subject, []).append(fact)
+        return {name: _values_for(group) for name, group in subjects.items()}
+
+
+def _values_for(facts: Iterable[FactView]) -> dict[str, str | tuple[str, ...]]:
+    grouped: dict[str, list[str]] = {}
+    kinds: dict[str, Cardinality] = {}
+    for fact in facts:
+        grouped.setdefault(fact.predicate, []).append(fact.object)
+        kinds[fact.predicate] = fact.cardinality
+    out: dict[str, str | tuple[str, ...]] = {}
+    for name, objects in grouped.items():
+        if kinds[name] is Cardinality.MANY:
+            out[name] = tuple(sorted(objects, key=str.casefold))
+        else:
+            out[name] = objects[0]
+    return out
+
+
+class ExplainResult(BaseModel):
+    """Provenance for one fact."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    fact: FactView
+    events: tuple[FactEventView, ...] = ()
+    evidence_episode_ids: tuple[int, ...] = ()
+    superseded_by: str | None = None
 
 
 class OnStale(StrEnum):
