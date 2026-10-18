@@ -1,17 +1,15 @@
 #!/usr/bin/env bash
-# Fail unless this branch adds at least one changes/*.md file (not README).
+# Fail unless this branch adds a changes/*.md file, or the title has [no-changeset].
 set -euo pipefail
 
 base="${1:-${BASE_SHA:-origin/main}}"
 head="${2:-${HEAD_SHA:-HEAD}}"
-labels="${LABELS:-}"
+title="${PR_TITLE:-}"
 
-case ",${labels}," in
-  *,skip-changeset,*)
-    echo "skip-changeset label present; allowing empty changes/."
-    exit 0
-    ;;
-esac
+if printf '%s' "${title}" | grep -Fqi -- '[no-changeset]'; then
+  echo "[no-changeset] in PR title; skipping changes/ check."
+  exit 0
+fi
 
 added=$(git diff --name-only --diff-filter=A "${base}...${head}" -- changes || true)
 count=0
@@ -28,6 +26,6 @@ while IFS= read -r path; do
 done <<< "${added}"
 
 if [ "${count}" -eq 0 ]; then
-  echo "::error::Add a new file under changes/ (see changes/README.md), or label the PR skip-changeset."
+  echo "::error::Add changes/<slug>.md, or put [no-changeset] in the PR title."
   exit 1
 fi

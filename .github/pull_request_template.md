@@ -16,9 +16,15 @@
 
 -
 
+## Title
+
+Must include one risk tag: `[low-risk]`, `[medium-risk]`, or `[high-risk]`.
+Use `[no-changeset]` in the title only when no `changes/` file is needed.
+
 ## Changeset
 
-- [ ] Added `changes/<slug>.md` (see [changes/README.md](../changes/README.md)). Do not update the README status line for internal work.
+- [ ] Added `changes/<slug>.md`, or the title includes `[no-changeset]` (see [changes/README.md](../changes/README.md)).
+- [ ] Do not update the README status line for internal work.
 
 ## Test plan
 

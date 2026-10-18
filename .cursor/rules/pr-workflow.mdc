@@ -15,7 +15,8 @@ alwaysApply: true
 
 ## Before opening the PR
 
-- Add **one new file** `changes/<kebab-slug>.md` (What + Why). CI fails without it. See `changes/README.md`.
+- Title must include exactly one of `[low-risk]`, `[medium-risk]`, `[high-risk]`.
+- Add **one new file** `changes/<kebab-slug>.md` (What + Why), unless the title includes `[no-changeset]`. See `changes/README.md`.
 - Do **not** update the README status line for internal slices. README only when user-facing API or CLI behavior changes.
 - Significant design choices get an ADR (copy the existing format; add a row to `docs/adr/README.md`).
 - CONTRIBUTING only for workflow changes.
