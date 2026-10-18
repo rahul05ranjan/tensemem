@@ -28,7 +28,7 @@ Every PR also gets free automated review gates:
 | Check | What it does |
 |---|---|
 | **CI** | Ruff (with inline annotations), format, pyright, pytest, package build |
-| **PR quality** | Requires `## What` / `## Why` / `## Docs` in the body; fails oversized diffs (>1000 lines unless labeled `large-pr`); actionlint posts workflow findings as review comments; gitleaks scans for secrets |
+| **PR quality** | Requires `## What` / `## Why` / `## Docs`; a new `changes/<slug>.md` file (or `skip-changeset` label); fails oversized diffs (>1000 lines unless labeled `large-pr`); actionlint review comments; gitleaks |
 | **CodeQL** | Security analysis for Python and GitHub Actions (free on public repos) |
 
 We do **not** depend on third-party AI review apps (many look free then push a paid trial). Quality comes from the gates above plus human review.
@@ -39,6 +39,7 @@ In branch protection, require at least: `Lint and type-check`, `PR description a
 
 - `main` is protected. All changes go through pull requests.
 - Keep each PR focused on one change, and describe what changed and why. Use the pull request template.
+- Add a changeset file under [changes/](changes/) (required). Do not bump the README status line for internal work.
 - Significant design changes need an architecture decision record in `docs/adr/`.
 - Write commit messages in the imperative mood, for example "Add predicate registry".
 - Agents and editors should follow the project rules in [`.cursor/rules/`](.cursor/rules/) (short PRs, docs in the same change, vendor-neutral public docs).

@@ -75,6 +75,13 @@ jobs:
             echo "::warning::Diff is $total lines (soft limit $soft). Prefer smaller PRs when possible."
           fi
 
+      - name: Require a changeset file
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: bash scripts/check-changeset.sh
+
   actionlint:
     name: Lint workflows (reviewdog)
     runs-on: ubuntu-latest
