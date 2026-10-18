@@ -2,7 +2,7 @@
 
 **Memory that knows its tenses.** Embedded, deterministic memory that AI agents can safely act on.
 
-> Status: pre-alpha. Domain types and the SQLite writer/read-pool backend are in place; scopes, registry, and the resolver are next.
+> Status: pre-alpha. Domain types, the SQLite backend, scopes, and an empty predicate registry are in place; the resolver is next. Apps register predicates (or seed from their own ontology file) when they need them.
 
 ## The problem
 
