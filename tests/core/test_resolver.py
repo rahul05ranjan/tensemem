@@ -194,6 +194,75 @@ def test_deny_rejects_matching_fact() -> None:
     assert mutations[0].target_fact_id == "f1"
 
 
+def test_deny_then_set_same_value_in_batch_is_dropped() -> None:
+    mutations = resolve(
+        [_incoming(_op(OpKind.DENY, "Pune")), _set("Pune")],
+        Snapshot(episode_seq=5, facts=(_fact("Pune", id="f1", object_norm="pune"),)),
+    )
+    assert [m.kind for m in mutations] == ["reject", "drop"]
+    assert mutations[1].reason == "rejected_claim"
+
+
+def test_replace_set_confirmation_does_not_retract_others() -> None:
+    rust = IncomingOp(
+        op=_op(OpKind.REPLACE_SET, "Rust", predicate="uses_language", is_confirmation=True),
+        object_norm="rust",
+        cardinality=Cardinality.MANY,
+    )
+    mutations = resolve(
+        [rust],
+        Snapshot(
+            facts=(_fact("Python", id="py", predicate="uses_language", object_norm="python"),)
+        ),
+    )
+    assert [m.kind for m in mutations] == ["drop"]
+    assert mutations[0].reason == "confirmation_without_match"
+
+
+def test_replace_set_low_confidence_does_not_retract_others() -> None:
+    rust = IncomingOp(
+        op=_op(OpKind.REPLACE_SET, "Rust", predicate="uses_language", confidence=0.6),
+        object_norm="rust",
+        cardinality=Cardinality.MANY,
+    )
+    mutations = resolve(
+        [rust],
+        Snapshot(
+            facts=(_fact("Python", id="py", predicate="uses_language", object_norm="python"),)
+        ),
+    )
+    assert [m.kind for m in mutations] == ["insert_active"]
+
+
+def test_blank_retract_clears_many_value() -> None:
+    mutations = resolve(
+        [
+            IncomingOp(
+                op=_op(OpKind.RETRACT, "", predicate="uses_language"),
+                object_norm="",
+                cardinality=Cardinality.MANY,
+            )
+        ],
+        Snapshot(
+            facts=(_fact("Python", id="py", predicate="uses_language", object_norm="python"),)
+        ),
+    )
+    assert mutations[0].kind == "retract"
+    assert mutations[0].target_fact_id == "py"
+
+
+def test_two_subjects_keep_separate_pending_facts() -> None:
+    wife = IncomingOp(
+        op=_op(OpKind.SET, "Pune", subject="user.wife"),
+        object_norm="pune",
+        cardinality=Cardinality.ONE,
+    )
+    mutations = resolve([_set("Pune"), wife, _set("Bangalore")], Snapshot())
+    assert [m.kind for m in mutations] == ["insert_active", "insert_active", "supersede"]
+    # Only the user's pending city is replaced; the wife's Pune stays in preview.
+    assert mutations[2].target_fact_id == "pending:user:lives_in:pune"
+
+
 def _set(
     city: str,
     *,
@@ -220,6 +289,7 @@ def _op(
     kind: OpKind,
     obj: str,
     *,
+    subject: str = "user",
     predicate: str = "lives_in",
     confidence: float = 0.95,
     modality: Modality = Modality.ASSERTED,
@@ -228,7 +298,7 @@ def _op(
     is_confirmation: bool = False,
 ) -> ExtractedOp:
     return ExtractedOp(
-        subject="user",
+        subject=subject,
         predicate=predicate,
         object=obj,
         op=kind,

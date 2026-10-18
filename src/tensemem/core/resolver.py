@@ -76,11 +76,22 @@ class Snapshot(BaseModel):
 def resolve(ops: Iterable[IncomingOp], snapshot: Snapshot) -> tuple[Mutation, ...]:
     """Apply the decision table to ``ops``. Later ops see earlier ones in the same batch."""
     working = [fact for fact in snapshot.facts if fact.status is FactStatus.ACTIVE]
+    rejected = list(snapshot.rejected_claims)
     mutations: list[Mutation] = []
     for incoming in ops:
-        batch = _resolve_one(incoming, working, snapshot)
+        view = snapshot.model_copy(update={"rejected_claims": tuple(rejected)})
+        batch = _resolve_one(incoming, working, view)
         mutations.extend(batch)
         working = _preview(working, batch, incoming)
+        if any(m.kind == "reject" for m in batch):
+            rejected.append(
+                RejectedClaim(
+                    subject=incoming.op.subject,
+                    predicate=incoming.op.predicate,
+                    object_norm=incoming.object_norm,
+                    until_seq=snapshot.episode_seq,
+                )
+            )
     return tuple(mutations)
 
 
@@ -135,6 +146,9 @@ def _replace_set(
     incoming: IncomingOp, active: list[FactSnap], snapshot: Snapshot
 ) -> list[Mutation]:
     """Keep only this value for a MANY predicate: retract the others, then SET this one."""
+    # Confirmations and weak guesses must not wipe the other values first.
+    if incoming.op.is_confirmation or incoming.op.confidence < snapshot.min_supersede_confidence:
+        return _set_or_add(incoming, active, snapshot)
     mutations: list[Mutation] = []
     for fact in _actives_for_predicate(incoming, active):
         if fact.object_norm != incoming.object_norm:
@@ -152,10 +166,10 @@ def _replace_set(
 
 
 def _retract(incoming: IncomingOp, active: list[FactSnap], *, match_empty: bool) -> list[Mutation]:
-    current = _active_in_slot(incoming, active)
+    object_blank = incoming.op.object.strip() == ""
+    current = _active_in_slot(incoming, active, match_empty=match_empty and object_blank)
     if current is None:
         return [_drop(incoming.op, "nothing_to_retract")]
-    object_blank = incoming.op.object.strip() == ""
     if current.object_norm != incoming.object_norm and not (match_empty and object_blank):
         return [_drop(incoming.op, "retract_object_mismatch")]
     return [Mutation(kind="retract", op=incoming.op, reason="retract", target_fact_id=current.id)]
@@ -177,13 +191,19 @@ def _deny(incoming: IncomingOp, active: list[FactSnap]) -> list[Mutation]:
     return [Mutation(kind="reject", op=incoming.op, reason="deny", target_fact_id=match.id)]
 
 
-def _active_in_slot(incoming: IncomingOp, active: list[FactSnap]) -> FactSnap | None:
+def _active_in_slot(
+    incoming: IncomingOp, active: list[FactSnap], *, match_empty: bool = False
+) -> FactSnap | None:
     matches = [
         fact
         for fact in active
         if fact.subject == incoming.op.subject
         and fact.predicate == incoming.op.predicate
-        and (incoming.cardinality is Cardinality.ONE or fact.object_norm == incoming.object_norm)
+        and (
+            incoming.cardinality is Cardinality.ONE
+            or fact.object_norm == incoming.object_norm
+            or match_empty
+        )
     ]
     return matches[0] if matches else None
 
@@ -239,7 +259,9 @@ def _preview(
         ]
         remaining.append(
             FactSnap(
-                id=f"pending:{incoming.op.predicate}:{incoming.object_norm}",
+                id=(
+                    f"pending:{incoming.op.subject}:{incoming.op.predicate}:{incoming.object_norm}"
+                ),
                 subject=incoming.op.subject,
                 predicate=incoming.op.predicate,
                 object_norm=incoming.object_norm,
