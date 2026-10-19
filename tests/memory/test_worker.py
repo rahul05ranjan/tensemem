@@ -127,6 +127,17 @@ def test_queued_messages_extract_in_one_call() -> None:
         assert all(job.status is JobStatus.DONE for job in mem.jobs("u1"))
 
 
+def test_secret_in_message_is_redacted_and_city_still_extracts() -> None:
+    key = "sk-" + "Xi8tcNiHV9awbCcvilTe" + "T3BlbkFJ" + "3UDnpdEwNNm6wVBpYM0o"
+    with _memory() as mem:
+        mem.register_predicate("lives_in")
+        mem.add("u1", f"I live in Delhi {key}", wait=True)
+        assert mem.state("u1").values == {"lives_in": "Delhi"}
+        ctx = mem.context("u1")
+        assert key not in ctx.text
+        assert "Said recently" not in ctx.text
+
+
 def test_language_replace_set() -> None:
     with _memory() as mem:
         mem.register_predicate("lives_in")
