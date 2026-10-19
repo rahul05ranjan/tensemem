@@ -22,3 +22,23 @@ def test_scrub_redacts_quoted_password_assignment() -> None:
     out = scrub('password = "hunter2"')
     assert "hunter2" not in out
     assert REPLACEMENT in out
+
+
+def test_scrub_ignores_allowlist_pragma() -> None:
+    out = scrub('password = "hunter2"  # pragma: allowlist secret')
+    assert "hunter2" not in out
+    assert REPLACEMENT in out
+
+
+def test_scrub_redacts_github_token_and_private_key_block() -> None:
+    token = "ghp_" + ("a" * 36)
+    kind = "RSA " + "PRIVATE KEY"
+    begin = f"-----BEGIN {kind}-----"
+    end = f"-----END {kind}-----"
+    body = "MIIEogIBAAKCAQEAnexamplebody"
+    pem = f"{begin}\n{body}\n{end}"
+    out = scrub(f"token {token}\n{pem}")
+    assert token not in out
+    assert begin not in out
+    assert body not in out
+    assert REPLACEMENT in out
