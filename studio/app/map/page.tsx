@@ -3,17 +3,13 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { api, type Fact, type Graph } from "@/lib/api";
 import { ScopeBar } from "../scope";
+import { formatWhen } from "../lib/format-when";
 import { FactGraph } from "./graph";
 
 function badgeClass(status: string): string {
   if (status === "ACTIVE") return "act";
   if (status === "REJECTED") return "stop";
   return "was";
-}
-
-function when(value: string | null): string {
-  if (!value) return "—";
-  return value.replace("T", " ").replace(/\.\d+.*/, "").replace("Z", "");
 }
 
 export default function MapPage() {
@@ -104,8 +100,8 @@ export default function MapPage() {
                         <span className={`badge ${badgeClass(fact.status)}`}>{fact.status}</span>
                       </span>
                     </td>
-                    <td className="col-when">{when(fact.valid_from)}</td>
-                    <td className="col-when">{when(fact.recorded_at)}</td>
+                    <td className="col-when">{formatWhen(fact.valid_from)}</td>
+                    <td className="col-when">{formatWhen(fact.recorded_at)}</td>
                     <td className="col-job-actions">
                       <button
                         type="button"

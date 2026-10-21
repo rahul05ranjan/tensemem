@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, getToken, setToken } from "@/lib/api";
+import { formatWhen } from "../lib/format-when";
 
 const EXTRACTORS = [
   { id: "fake", label: "Built-in rules", hint: "No API key. Fast, first-person patterns only." },
@@ -176,7 +177,7 @@ export default function OpsPage() {
             <tbody>
               {requests.slice(0, 20).map((row, index) => (
                 <tr key={`${row.at}-${index}`}>
-                  <td className="col-when">{String(row.at ?? "—").replace("T", " ").slice(0, 19)}</td>
+                  <td className="col-when">{formatWhen(row.at == null ? null : String(row.at))}</td>
                   <td className="col-kind">{String(row.method)}</td>
                   <td className="col-object">{String(row.path)}</td>
                   <td className="col-status">{String(row.status)}</td>
