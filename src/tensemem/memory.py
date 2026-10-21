@@ -89,7 +89,12 @@ from tensemem.storage.sqlite.reads import (
 )
 from tensemem.storage.sqlite.registry import get_predicate, register_predicate
 from tensemem.storage.sqlite.retrieve import assemble_context, assemble_search
-from tensemem.storage.sqlite.scopes import get_or_create_scope, get_scope, get_scope_by_id
+from tensemem.storage.sqlite.scopes import (
+    get_or_create_scope,
+    get_scope,
+    get_scope_by_id,
+    list_scopes,
+)
 from tensemem.storage.sqlite.snapshot import (
     freshness_for,
     load_fact_view,
@@ -141,6 +146,38 @@ class Memory:
 
     def has_worker(self) -> bool:
         return self._llm is not None or self._embedder is not None
+
+    def extract_worker_alive(self) -> bool:
+        """True when the in-process extract thread is running."""
+        worker = self._worker
+        return worker is not None and worker.is_alive()
+
+    def store(self) -> SqliteDatabase:
+        """Underlying SQLite store. Studio ops use this for keys and settings."""
+        return self._db
+
+    def apply_extractor(self, llm: LLMProvider | None) -> None:
+        """Replace the in-process extractor (Studio ops / serve)."""
+        self._llm = llm
+
+    def apply_embedder(self, embedder: Embedder | None) -> None:
+        """Replace the in-process embedder (Studio ops / serve)."""
+        self._embedder = embedder
+
+    def start_extract_worker(self) -> None:
+        """Start the extract loop if it is not already running."""
+        previous = self._worker
+        if previous is not None and previous.is_alive():
+            if not self._stop.is_set():
+                return
+            previous.join(timeout=5.0)
+        self._stop.clear()
+        self._worker = threading.Thread(
+            target=self._run_worker,
+            name="tensemem-extract-worker",
+            daemon=True,
+        )
+        self._worker.start()
 
     def embed_query(self, query: str) -> tuple[list[float] | None, str | None]:
         if self._embedder is None or not query.strip():
@@ -261,7 +298,12 @@ class Memory:
             self._wake.wait(timeout=min(_WORKER_IDLE, max(remaining, 0.0)))
             self._wake.clear()
         if self.waiting_for(job_id):
-            msg = f"extract jobs still pending after {timeout}s"
+            detail = ""
+            if job_id is not None:
+                job = self._db.write(lambda conn: get_job(conn, job_id))
+                if job is not None and job.last_error:
+                    detail = f": {job.last_error}"
+            msg = f"extract jobs still pending after {timeout}s{detail}"
             raise TimeoutError(msg)
 
     def waiting_for(self, job_id: str | None) -> bool:
@@ -676,6 +718,52 @@ class Memory:
         key = ScopeKey(user_id=user_id, agent_id=agent_id, namespace=namespace)
         name = None if predicate is None else normalize_key(predicate)
         return self._db.read(lambda conn: read_history(conn, get_scope(conn, key), predicate=name))
+
+    def scopes(self, *, namespace: str | None = "default") -> tuple[Scope, ...]:
+        """Stored scopes, defaulting to the ``default`` namespace."""
+        return self._db.read(lambda conn: list_scopes(conn, namespace=namespace))
+
+    def episode_texts(
+        self,
+        user_id: str,
+        *,
+        agent_id: str = "",
+        namespace: str = "default",
+    ) -> tuple[str, ...]:
+        """User message texts in ingest order (for concat / overlap baselines)."""
+        key = ScopeKey(user_id=user_id, agent_id=agent_id, namespace=namespace)
+
+        def load(conn: sqlite3.Connection) -> tuple[str, ...]:
+            scope = get_scope(conn, key)
+            if scope is None:
+                return ()
+            return tuple(
+                str(row["content"])
+                for row in list_episodes(conn, scope.id)
+                if str(row["role"]) == "user" and str(row["kind"]) == "message"
+            )
+
+        return self._db.read(load)
+
+    def graph(
+        self,
+        user_id: str,
+        *,
+        agent_id: str = "",
+        namespace: str = "default",
+    ) -> dict[str, object]:
+        """Subject/object nodes plus predicate and SUPERSEDES edges."""
+        from tensemem.storage.sqlite.graph import load_graph
+
+        key = ScopeKey(user_id=user_id, agent_id=agent_id, namespace=namespace)
+
+        def load(conn: sqlite3.Connection) -> dict[str, object]:
+            scope = get_scope(conn, key)
+            if scope is None:
+                return {"nodes": [], "edges": []}
+            return load_graph(conn, scope.id)
+
+        return self._db.read(load)
 
     def explain(self, fact_id: str) -> ExplainResult:
         def load(conn: sqlite3.Connection) -> ExplainResult:
